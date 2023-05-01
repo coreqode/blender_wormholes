@@ -23,10 +23,15 @@ class Scene:
         self.scene.cycles.samples = settings['sample_size']
 
     def add_objects(self, filepath):
-        bpy.ops.import_scene.obj(filepath=filepath, split_mode='OFF')
+        old_objs = set(self.scene.objects)
+        if '.obj' in filepath:
+                bpy.ops.import_scene.obj(filepath=filepath, split_mode='OFF')
+        elif '.ply' in filepath:
+                bpy.ops.import_mesh.ply(filepath = filepath)
         bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
-        name = filepath.split('/')[-1].split('.')[0]
-        return Object(name)
+        imported_objs = set(self.scene.objects) - old_objs
+        name = list(imported_objs)[0].name
+        return Object(obj_name = name)
 
     def delete_objects(self, obj_name):
         self.deselect_all()
@@ -36,7 +41,9 @@ class Scene:
     def set_camera(self):
         pass
 
-    def render(self, animation=False):
+    def render(self, path = None, animation=False):
+        if path is not None:
+            self.scene.render.filepath = path
         bpy.ops.render.render(write_still=True, animation=animation)
 
     def current_mode(self):
@@ -246,7 +253,7 @@ class Scene:
 
 
 class Object:
-    def __init__(self, obj_name):
+    def __init__(self, obj_name = None, obj_path = None):
         self.name = obj_name
         self.obj = bpy.data.objects[self.name]
         self.mode = self.obj.mode
@@ -268,6 +275,9 @@ class Object:
 
     def scale(self, value):
         self.obj.scale = (value[0], value[1], value[2])
+
+    def translate(self, value):
+        self.obj.location = (value[0], value[1], value[2])
 
     def add_keyframe(self, data_path, frame):
         self.obj.keyframe_insert(data_path=data_path, frame=frame)

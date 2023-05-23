@@ -9,11 +9,13 @@ from .constants import SHADER_NODE_TYPE
 class Scene:
     def __init__(self):
         self.scene = bpy.context.scene
-
+        
     def initialize_image_settings(self, settings):
         self.scene.render.resolution_x = settings['resolution'][0]
         self.scene.render.resolution_y = settings['resolution'][1]
         self.scene.render.filepath = settings['output_path']
+        self.scene.render.image_settings.file_format = settings['file_format']
+        self.scene.render.film_transparent = settings['film_transparent'] 
 
     def initialize_rendering_settings(self, settings):
         self.scene.render.engine = settings['engine']
@@ -68,15 +70,6 @@ class Scene:
     def deselect_all(self):
         bpy.ops.object.select_all(action='DESELECT')
         bpy.context.view_layer.objects.active = None
-
-    # def add_lights_to_scene(self):
-    #     mat = self.smplx_indices['lights_matrix_world']['light_1']
-    #     bpy.ops.object.light_add(type='POINT', radius=1, align='WORLD')
-    #     light_1 = bpy.data.objects['Point']
-    #     light_1.matrix_world = Matrix(mat)
-    #     light_1.name = 'light_1'
-    #     light_1.data.energy = 20
-    #     light_1.data.color = (1, 0.701487, 0.278857)
 
     def apply_hdri(self, image_path):
         self.env_texture_node.image = bpy.data.images.load(image_path)
@@ -268,7 +261,10 @@ class Object:
             self.obj.hide_render = False
 
     def link_material(self, mat):
-        self.obj.data.materials[0] = mat
+        if self.obj.data.materials:
+            self.obj.data.materials[0] = mat
+        else:
+            self.obj.data.materials.append(mat)
 
     def rotate(self, angle, axis):
         self.obj.rotation_euler[axis] = angle
@@ -345,9 +341,9 @@ class Camera:
     def __init__(self, name=None):
         if name:
             self.name = name
+            self.camera = bpy.data.objects[self.name]
         else:
-            self.name = 'camera'
-        self.camera = None
+            self.add_camera()
 
     def add_camera(self,  matrix=None, lens=None):
         bpy.ops.object.camera_add(enter_editmode=False, align="WORLD")
